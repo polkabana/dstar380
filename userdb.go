@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type mobileCode struct {
@@ -20,6 +21,7 @@ type mobileCode struct {
 	ISO  string
 }
 
+var wg sync.WaitGroup
 var mobileCodes map[int]mobileCode
 var userDB map[int]string
 var userDStar map[int]string
@@ -60,7 +62,7 @@ func processContacts() {
 		}
 
 		userDB[dstarID] = fmt.Sprintf("%d,%s,%s,%s,,,%s", dstarID, data[1], data[2], countryName, iso)
-		count = count + 1
+		count++
 	}
 
 	if !skipTG {
@@ -84,11 +86,11 @@ func processContacts() {
 			}
 
 			userDB[groupID] = fmt.Sprintf("%d,TG%d,%s,%s,,,%s", groupID, groupID, strings.TrimSpace(bmGroups[groupID]), countryName, iso)
-			count = count + 1
+			count++
 		}
 	}
 
-	println("lines added", count)
+	println("total", len(userDB), "lines, added", count)
 
 	keys := make([]int, len(userDB))
 	i := 0
@@ -114,6 +116,8 @@ func processContacts() {
 }
 
 func loadCodes() {
+	defer wg.Done()
+
 	content, err := ioutil.ReadFile("codes.csv")
 	if err != nil {
 		return
@@ -132,9 +136,12 @@ func loadCodes() {
 			ISO:  data[2],
 		}
 	}
+	println("Codes list done")
 }
 
 func loadUserDB() {
+	defer wg.Done()
+
 	resp, err := http.Get("https://raw.githubusercontent.com/DMR-Database/database/master/user.bin")
 	if err != nil {
 		return
@@ -143,6 +150,7 @@ func loadUserDB() {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		println("UserDB load error")
 		return
 	}
 
@@ -160,11 +168,15 @@ func loadUserDB() {
 		id, _ := strconv.Atoi(strings.TrimSpace(data[0]))
 		userDB[id] = line
 	}
+	println("UserDB done")
 }
 
 func loadDStarSU() {
+	defer wg.Done()
+
 	resp, err := http.Get("http://registry.dstar.su/dmr/DMRIds2.php")
 	if err != nil {
+		println("DStar.su load error")
 		return
 	}
 	defer resp.Body.Close()
@@ -192,11 +204,15 @@ func loadDStarSU() {
 		id, _ := strconv.Atoi(strings.TrimSpace(data[0]))
 		userDStar[id] = line
 	}
+	println("DStar.su done")
 }
 
 func loadTGList() {
+	defer wg.Done()
+
 	resp, err := http.Get("https://api.brandmeister.network/v1.0/groups/")
 	if err != nil {
+		println("TG list load error")
 		return
 	}
 	defer resp.Body.Close()
@@ -211,6 +227,7 @@ func loadTGList() {
 	if err != nil {
 		return
 	}
+	println("TG list done")
 }
 
 func main() {
@@ -226,15 +243,16 @@ func main() {
 	println("exclude:", *exclude)
 	println("skipTG:", skipTG)
 
-	loadCodes()
-	loadUserDB()
-	loadDStarSU()
+	wg.Add(3)
+	go loadCodes()
+	go loadUserDB()
+	go loadDStarSU()
 
 	if !skipTG {
-		loadTGList()
+		wg.Add(1)
+		go loadTGList()
 	}
 
-	println("loaded")
-
+	wg.Wait()
 	processContacts()
 }
