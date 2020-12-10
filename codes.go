@@ -1,4 +1,6 @@
-289	Abkhazia	GE-AB
+package main
+
+const codes string = `289	Abkhazia	GE-AB
 412	Afghanistan	AF
 276	Albania	AL
 603	Algeria	DZ
@@ -252,3 +254,4 @@
 421	Yemen	YE
 645	Zambia	ZM
 648	Zimbabwe	ZW
+`

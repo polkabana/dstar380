@@ -118,13 +118,8 @@ func processContacts() {
 func loadCodes() {
 	defer wg.Done()
 
-	content, err := ioutil.ReadFile("codes.csv")
-	if err != nil {
-		return
-	}
-
 	mobileCodes = make(map[int]mobileCode, 0)
-	for _, code := range strings.Split(string(content), "\n") {
+	for _, code := range strings.Split(codes, "\n") {
 		data := strings.Split(code, "\t")
 		if len(data) != 3 {
 			continue
@@ -136,6 +131,7 @@ func loadCodes() {
 			ISO:  data[2],
 		}
 	}
+
 	println("Codes list done")
 }
 
