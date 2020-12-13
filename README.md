@@ -27,6 +27,7 @@ Append contacts from dstar.su database and TG list to TYT MD380/390 userdb.bin (
 Не импортировать информацию о TG группах.
 
 `userdb.zip` скомпилировная версия для Win10 x64
+`userdb.x86.zip` скомпилировная версия для x86
 
 ## Поддержка
 
